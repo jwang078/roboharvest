@@ -1,0 +1,23 @@
+{
+    "final_reproj_error": 0.08781392882744682,
+    "fps": 59.94005994005994,
+    "image_height": 2028,
+    "image_width": 2704,
+    "intrinsic_type": "PINHOLE",
+    "intrinsics": {
+        "focal_length_x": 1298.6622783664886,
+        "focal_length_y": 1296.3416996239337,
+        "principal_pt_x": 1344.0959917055648,
+        "principal_pt_y": 1019.9258064931641,
+        "skew": 0.0,
+        "radial_distortion": [
+            0.02446239787010675,
+            -0.04616970686850365,
+            0.00010001140938093665,
+            -0.001970543762905741,
+            0.04010570501472768
+        ]
+    },
+    "nr_calib_images": 59,
+    "stabelized": false
+}

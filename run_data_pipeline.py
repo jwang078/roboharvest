@@ -19,8 +19,10 @@ import subprocess
 @click.command()
 @click.argument('session_dir', nargs=-1)
 @click.option('-c', '--calibration_dir', type=str, default=None)
-@click.option('-m', '--mode', type=str, required=True, help='pruner or gripper or pruner_inverse')
-def main(session_dir, calibration_dir, mode):
+@click.option('-m', '--mode', type=str, required=True, help='pruner or gripper or pruner_inverse or grasper_inverse')
+@click.option('--max_lost_frames', type=int, default=None, help="passed through to 06_generate_dataset_plan; omitted (original behavior) when not set")
+@click.option('--whole_demo_episodes', is_flag=True, default=False, help="passed through to 06_generate_dataset_plan: keep each demo as one uncut episode")
+def main(session_dir, calibration_dir, mode, max_lost_frames, whole_demo_episodes):
     script_dir = pathlib.Path(__file__).parent.joinpath('scripts_data_processing')
     if calibration_dir is None:
         calibration_dir = pathlib.Path(__file__).parent.joinpath('config')
@@ -125,8 +127,12 @@ def main(session_dir, calibration_dir, mode):
         cmd = [
             'python', str(script_path),
             '--input', str(session),
-            '--mode', str(mode) 
+            '--mode', str(mode)
         ]
+        if max_lost_frames is not None:
+            cmd += ['--max_lost_frames', str(max_lost_frames)]
+        if whole_demo_episodes:
+            cmd += ['--whole_demo_episodes']
         result = subprocess.run(cmd)
         assert result.returncode == 0
   

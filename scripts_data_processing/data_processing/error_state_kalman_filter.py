@@ -79,6 +79,15 @@ class ESKF:
                                          [ 0,-1, 0, 0.085],
                                          [ 0, 0,-1,-0.207 ],
                                          [ 0, 0, 0, 1    ]])
+        elif mode=='grasper_inverse':
+            # x sign verified empirically 2026-08-20: -0.021 gives lower EKF/aruco
+            # disagreement than +0.021 (1129 vs 1214 total is_lost frames on the
+            # 2026-08-19-jenny-test session), consistent with the cube sitting to
+            # the camera's left in the gripper cam view.
+            self.TX_CUBE_IMU = np.array([[ 1, 0, 0, -0.021 ],
+                                         [ 0,-1, 0, -0.03],
+                                         [ 0, 0,-1, -0.25 ],
+                                         [ 0, 0, 0, 1    ]])
         
         sigma_accel_drift = 0.001 * sigma_accel  # [m/s^2 sqrt(s)] (Educated guess, real value to be measured)
         sigma_gyro_drift = 0.001 * sigma_gyro  # [rad/s sqrt(s)] (Educated guess, real value to be measured)

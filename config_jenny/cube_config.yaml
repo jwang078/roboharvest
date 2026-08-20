@@ -1,0 +1,11 @@
+# Jenny's cube (printed with ids 18,19,36-49 instead of the default 20-35).
+# Layout determined by reprojection fit over 2026-08-19-jenny-test birdseye
+# videos: ~1px mean reprojection error. Same physical dims as the original cube.
+cube_dim: 0.07
+marker_dim: 0.025
+marker_sep: 0.01 # separation between markers
+cube_side2id_map:
+  'top': [18, 19, 36, 37]
+  'back': [42, 43, 44, 45]
+  'left': [38, 39, 40, 41]
+  'right': [46, 47, 48, 49]

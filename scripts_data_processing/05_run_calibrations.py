@@ -23,7 +23,7 @@ def main(session_dir, mode):
         # run gripper range calibration
         if mode == 'gripper':
             script_path = script_dir.joinpath('calibrate_gripper_range.py')
-        elif mode.startswith('pruner'):
+        elif mode.startswith('pruner') or mode.startswith('grasper'):
             script_path = script_dir.joinpath('calibrate_pruner_range.py')
         assert script_path.is_file()
         

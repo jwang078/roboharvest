@@ -79,8 +79,11 @@ def get_x_projection(tx_tag_this, tx_tag_other):
 @click.option('-ml', '--min_episode_length', type=int, default=24)
 @click.option('--ignore_cameras', type=str, default=None, help="comma separated string of camera serials to ignore")
 @click.option('-m', '--mode', type=str, required=True, help='pruner or gripper')
+@click.option('--max_lost_frames', type=int, default=30, help="max is_lost frames per video before it is dropped (default 30, the original behavior)")
+@click.option('--whole_demo_episodes', is_flag=True, default=False, help="keep each demo as ONE uncut episode instead of splitting at tracking-loss gaps (frames inside gaps carry interpolated poses)")
 def main(input, output, tx_slam_tag,
-         nominal_z, min_episode_length, ignore_cameras, mode):
+         nominal_z, min_episode_length, ignore_cameras, mode, max_lost_frames,
+         whole_demo_episodes):
     # %% stage 0
     # gather inputs
     input_path = pathlib.Path(os.path.expanduser(input)).absolute()
@@ -94,7 +97,7 @@ def main(input, output, tx_slam_tag,
     if mode=='gripper':
         tcp_offset = 0.205 # Axial distance from camera to finger tip
         cam_to_center_height = 0.086 # Vertical distance from camera to gripper center (constant for UMI)
-    elif mode.startswith('pruner'): # NOTE: need to double check if this is true for both pruner modes
+    elif mode.startswith('pruner') or mode.startswith('grasper'): # NOTE: need to double check if this is true for both pruner modes
         tcp_offset = 0.145
         cam_to_center_height = 0.076
 
@@ -423,7 +426,7 @@ def main(input, output, tx_slam_tag,
 
             csv_df = pd.read_csv(csv_path)
             
-            if csv_df['is_lost'].sum() > 30:
+            if csv_df['is_lost'].sum() > max_lost_frames:
                 # drop episode if too many lost frames
                 # unreliable tracking
                 break
@@ -616,7 +619,7 @@ def main(input, output, tx_slam_tag,
 
             # basic filtering to remove bad tracking
             n_frames_lost = (~is_tracked).sum()
-            if n_frames_lost > 30:
+            if n_frames_lost > max_lost_frames:
                 print(f"Skipping {video_dir.name}, {n_frames_lost} frames are lost.")
                 dropped_camera_count[row['camera_serial']] += 1
                 continue
@@ -686,7 +689,7 @@ def main(input, output, tx_slam_tag,
             for td in tag_detection_results:
                 if mode == 'gripper':
                     fn = get_gripper_width
-                elif mode.startswith('pruner'):
+                elif mode.startswith('pruner') or mode.startswith('grasper'):
                     fn = get_pruner_z
                 width = fn(td['tag_dict'], 
                     left_id=left_id, right_id=right_id, 
@@ -695,6 +698,10 @@ def main(input, output, tx_slam_tag,
                     gripper_timestamps.append(td['time'])
                     if mode=='gripper':
                         gripper_widths.append(gripper_cal_interp(width))
+                    elif mode.startswith('grasper'):
+                        # keep the ANALOG closure fraction (0 = open .. 1 = closed)
+                        gripper_widths.append(float(np.clip(gripper_cal_interp(width), 0.0, 1.0)))
+                        gripper_debug.append(gripper_cal_interp(width))
                     elif mode.startswith('pruner'):
                         # 1 = closed, 0 = open
                         # 0.0 if < 0.3, else 1.0: open if < 0.3, else closed
@@ -709,7 +716,9 @@ def main(input, output, tx_slam_tag,
                 print(f"Warining: {video_dir.name} only {gripper_det_ratio} of gripper tags detected.")
             
             this_gripper_widths = gripper_interp(video_timestamps)
-            this_gripper_widths = np.round(this_gripper_widths) 
+            if not mode.startswith('grasper'):
+                # pruner/gripper modes: original behavior (binarized)
+                this_gripper_widths = np.round(this_gripper_widths)
 
             # Plot gripper width against time to check appropriate threshold  
             plt.plot(gripper_timestamps, gripper_debug, '.-')
@@ -752,6 +761,13 @@ def main(input, output, tx_slam_tag,
             cam_poses = all_cam_poses[cam_idx]
             demo_start_poses.append(cam_poses[first_valid_step])
             demo_end_poses.append(cam_poses[last_valid_step])
+
+        if whole_demo_episodes:
+            # Keep each demo as ONE uncut episode: bridge interior
+            # tracking-loss gaps so the segmentation below yields a single
+            # segment spanning the demo's full valid extent. Frames inside
+            # bridged gaps carry interpolated poses/gripper widths.
+            is_step_valid[first_valid_step:last_valid_step + 1] = True
 
         # determine episode segmentation
         # remove valid segments that are too short

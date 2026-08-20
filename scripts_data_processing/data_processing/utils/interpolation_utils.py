@@ -49,7 +49,7 @@ def get_gripper_calibration_interpolator(
     aruco_min_width = np.min(aruco_actual_width)
     if mode == 'gripper':
         gripper_actual_width = aruco_actual_width - aruco_min_width
-    elif mode.startswith('pruner'):
-        gripper_actual_width = np.array([1.0, 0.0]) 
+    elif mode.startswith('pruner') or mode.startswith('grasper'):
+        gripper_actual_width = np.array([1.0, 0.0])
     interp = get_interp1d(aruco_measured_width, gripper_actual_width)
     return interp
